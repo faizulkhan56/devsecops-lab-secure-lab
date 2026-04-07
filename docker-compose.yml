@@ -1,0 +1,54 @@
+# Secure Docker Compose — Production-ready
+
+services:
+  web:
+    build: .
+    ports:
+      - "${APP_PORT:-5000}:5000"
+    env_file:
+      - .env
+    environment:
+      - APP_VERSION=${APP_VERSION:-dev}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+  db:
+    image: postgres:15-alpine
+    # SECURE: No port exposed to host — only accessible within internal network
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME:-securecart}
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - internal
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pgdata:

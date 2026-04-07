@@ -1,0 +1,16 @@
+# Exclude secrets and unnecessary files from Docker build context
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+__pycache__
+*.pyc
+venv
+.venv
+*.md
+.vscode
+.idea
+tests
+.dockerignore
+docker-compose.yml

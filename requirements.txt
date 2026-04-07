@@ -1,0 +1,6 @@
+# Pinned to latest patched versions
+Flask==3.1.0
+Jinja2==3.1.5
+Werkzeug==3.1.3
+psycopg2-binary==2.9.10
+gunicorn==23.0.0

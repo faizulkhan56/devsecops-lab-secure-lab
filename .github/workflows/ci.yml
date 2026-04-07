@@ -35,3 +35,8 @@ jobs:
         run: echo "Secret is set (not printing it!)"
         env:
           MY_SECRET: ${{ secrets.TEST_SECRET }}
+
+      - name: Config access
+        run: echo "MY_CONFIG=$MY_CONFIG"
+        env:
+          MY_CONFIG: ${{ vars.TEST_CONFIG }}

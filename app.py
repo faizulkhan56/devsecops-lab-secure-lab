@@ -199,7 +199,10 @@ def login():
 
 # IMPORTANT:
 # This runs when Gunicorn imports the app, so the users table gets created.
-init_db()
+# Skip when SKIP_DB_INIT is set (e.g. pytest in CI without Postgres).
+_skip = os.environ.get("SKIP_DB_INIT", "").lower() in ("1", "true", "yes")
+if not _skip:
+    init_db()
 
 
 if __name__ == "__main__":

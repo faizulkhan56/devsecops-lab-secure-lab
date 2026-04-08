@@ -1,21 +1,30 @@
 name: CI Pipeline
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:   # 👈 Manual trigger
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: 'pip'
-      - run: pip install -r requirements.txt
-      - run: pip install flake8 pytest
-      - run: flake8 app.py --max-line-length=120
-      - run: pytest tests/ -v
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install dev dependencies
+        run: pip install flake8 pytest
+
+      - name: Lint with flake8
+        run: flake8 app.py --max-line-length=120
+
+      - name: Run tests
+        run: pytest tests/ -v

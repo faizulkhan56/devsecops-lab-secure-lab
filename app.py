@@ -1,45 +1,44 @@
-"""
-SecureCart API — Secure Version
-================================
-This is the remediated version of the SecureCart API.
-All known vulnerabilities from the vulnerable version have been fixed.
-
-Fixes applied:
-1. SQL injection → parameterized queries
-2. Hardcoded secrets → environment variables
-3. Debug mode → disabled
-4. Input validation → added
-5. Error handling → no internal details exposed
-6. Health endpoint → added
-"""
-
 import os
-from datetime import datetime, timezone
-from flask import Flask, request, jsonify
-import psycopg2
 import re
+import time
+from datetime import datetime, timezone
+
+import psycopg2
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# SECURE: Secrets loaded from environment variables only
+# Secrets from environment variables
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-in-production")
 
 
 def get_db_connection():
-    """Get database connection using environment variables."""
-    conn = psycopg2.connect(
-        host=os.environ.get("DB_HOST", "db"),
-        database=os.environ.get("DB_NAME", "securecart"),
-        user=os.environ.get("DB_USER", "postgres"),
-        password=os.environ.get("DB_PASSWORD"),  # No hardcoded fallback
-    )
-    return conn
+    """Get database connection using environment variables with retry."""
+    last_error = None
+
+    for attempt in range(5):
+        try:
+            conn = psycopg2.connect(
+                host=os.environ.get("DB_HOST", "db"),
+                database=os.environ.get("DB_NAME", "securecart"),
+                user=os.environ.get("DB_USER", "postgres"),
+                password=os.environ.get("DB_PASSWORD"),
+                connect_timeout=5,
+            )
+            return conn
+        except Exception as e:
+            last_error = e
+            print(f"DB connection attempt {attempt + 1} failed: {e}")
+            time.sleep(2)
+
+    raise Exception(f"DB connection failed after retries: {last_error}")
 
 
 def init_db():
-    """Initialize database with seed data."""
+    """Initialize database with required tables."""
     conn = get_db_connection()
     cur = conn.cursor()
+
     cur.execute(
         """
         CREATE TABLE IF NOT EXISTS users (
@@ -49,11 +48,13 @@ def init_db():
             password VARCHAR(255) NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """
+        """
     )
+
     conn.commit()
     cur.close()
     conn.close()
+    print("Database initialized successfully.")
 
 
 def validate_email(email):
@@ -63,12 +64,11 @@ def validate_email(email):
 
 
 def validate_username(username):
-    """Username must be 3-80 alphanumeric characters."""
+    """Username must be 3-80 alphanumeric characters or underscore."""
     pattern = r"^[a-zA-Z0-9_]{3,80}$"
     return re.match(pattern, username) is not None
 
 
-# SECURE: Health endpoint with version and timestamp
 @app.route("/api/health", methods=["GET"])
 def health():
     """Health check endpoint."""
@@ -87,10 +87,11 @@ def get_users():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT id, username, email, created_at FROM users")
+        cur.execute("SELECT id, username, email, created_at FROM users ORDER BY id ASC")
         users = cur.fetchall()
         cur.close()
         conn.close()
+
         return jsonify(
             [
                 {
@@ -102,8 +103,8 @@ def get_users():
                 for u in users
             ]
         )
-    except Exception:
-        # SECURE: No internal error details exposed
+    except Exception as e:
+        print(f"GET /api/users failed: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -119,7 +120,6 @@ def create_user():
     email = data.get("email", "")
     password = data.get("password", "")
 
-    # SECURE: Input validation
     if not username or not email or not password:
         return jsonify({"error": "username, email, and password are required"}), 400
 
@@ -135,7 +135,6 @@ def create_user():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # SECURE: Parameterized query
         cur.execute(
             "INSERT INTO users (username, email, password) VALUES (%s, %s, %s) RETURNING id",
             (username, email, password),
@@ -144,10 +143,13 @@ def create_user():
         conn.commit()
         cur.close()
         conn.close()
+
         return jsonify({"id": user_id, "username": username}), 201
+
     except psycopg2.IntegrityError:
         return jsonify({"error": "Username or email already exists"}), 409
-    except Exception:
+    except Exception as e:
+        print(f"POST /api/users failed: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 
@@ -168,7 +170,6 @@ def login():
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # SECURE: Parameterized query — no SQL injection possible
         cur.execute(
             "SELECT id, username, email FROM users WHERE username = %s AND password = %s",
             (username, password),
@@ -181,17 +182,25 @@ def login():
             return jsonify(
                 {
                     "message": "Login successful",
-                    "user": {"id": user[0], "username": user[1], "email": user[2]},
+                    "user": {
+                        "id": user[0],
+                        "username": user[1],
+                        "email": user[2],
+                    },
                 }
             )
-        else:
-            # SECURE: Generic error message (don't reveal if username exists)
-            return jsonify({"error": "Invalid credentials"}), 401
-    except Exception:
+
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    except Exception as e:
+        print(f"POST /api/login failed: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 
+# IMPORTANT:
+# This runs when Gunicorn imports the app, so the users table gets created.
+init_db()
+
+
 if __name__ == "__main__":
-    init_db()
-    # SECURE: Debug mode disabled
     app.run(host="0.0.0.0", port=5000, debug=False)

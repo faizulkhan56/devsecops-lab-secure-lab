@@ -2,7 +2,7 @@
 
 services:
   web:
-    build: .
+    image: ghcr.io/faizulkhan56/devsecops-lab-secure-lab:${IMAGE_TAG:-latest}
     ports:
       - "${APP_PORT:-5000}:5000"
     env_file:
@@ -23,7 +23,6 @@ services:
 
   db:
     image: postgres:15-alpine
-    # SECURE: No port exposed to host — only accessible within internal network
     env_file:
       - .env
     environment:

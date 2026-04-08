@@ -17,6 +17,6 @@ def test_health_endpoint(client):
     assert 'version' in data
     assert 'timestamp' in data
 
-def test_deliberate_failure():
-    """This test will fail — demonstrating pipeline failure."""
-    assert 1 == 2, "Deliberate failure for CI demo"
+#def test_deliberate_failure():
+#    """This test will fail — demonstrating pipeline failure."""
+#    assert 1 == 2, "Deliberate failure for CI demo"

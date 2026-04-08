@@ -28,9 +28,10 @@ USER appuser
 
 EXPOSE 5000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')" || exit 1
+# Health check: 127.0.0.1 avoids IPv6 localhost quirks; urlopen timeout avoids hanging workers.
+# start-period allows init_db retries before marking unhealthy.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=4)" || exit 1
 
 # --timeout/--preload: fewer WORKER TIMEOUT "no URI read" issues; single init_db before fork.
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "--graceful-timeout", "30", "--preload", "app:app"]

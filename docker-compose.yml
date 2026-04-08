@@ -2,6 +2,9 @@
 
 services:
   web:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ghcr.io/faizulkhan56/devsecops-lab-secure-lab:${IMAGE_TAG:-latest}
     ports:
       - "${APP_PORT:-5000}:5000"
@@ -18,7 +21,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 256M
+          memory: 512M
           cpus: "0.5"
 
   db:
@@ -35,7 +38,7 @@ services:
       - internal
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

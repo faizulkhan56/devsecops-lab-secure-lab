@@ -70,6 +70,36 @@ def validate_username(username):
     return re.match(pattern, username) is not None
 
 
+def seed_initial_user():
+    """Insert one demo user if username is free (same rules as API)."""
+    username = os.environ.get("SEED_USERNAME", "demo")
+    email = os.environ.get("SEED_EMAIL", "demo@example.com")
+    password = os.environ.get("SEED_PASSWORD", "demoPass123")
+    if not validate_username(username) or not validate_email(email) or len(password) < 8:
+        print("Initial user seed skipped: invalid SEED_USERNAME, SEED_EMAIL, or SEED_PASSWORD (min 8 chars).")
+        return
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            INSERT INTO users (username, email, password)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (username) DO NOTHING
+            """,
+            (username, email, password),
+        )
+        conn.commit()
+        if cur.rowcount:
+            print(f"Seeded initial user {username!r} ({email!r}).")
+    except Exception as e:
+        conn.rollback()
+        print(f"Initial user seed skipped: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+
 @app.route("/api/health", methods=["GET"])
 def health():
     """Health check endpoint."""
@@ -199,10 +229,11 @@ def login():
 
 
 # IMPORTANT:
-# This runs when Gunicorn imports the app, so the users table gets created.
-# Skip under pytest only (CI has no Postgres); env-based skips leak into Docker via the shell.
+# init_db() creates the users table; seed_initial_user() adds a demo row if username is free.
+# Skip under pytest only (CI has no Postgres).
 if "pytest" not in sys.modules:
     init_db()
+    seed_initial_user()
 
 
 if __name__ == "__main__":

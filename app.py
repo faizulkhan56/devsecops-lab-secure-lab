@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -199,9 +200,8 @@ def login():
 
 # IMPORTANT:
 # This runs when Gunicorn imports the app, so the users table gets created.
-# Skip when SKIP_DB_INIT is set (e.g. pytest in CI without Postgres).
-_skip = os.environ.get("SKIP_DB_INIT", "").lower() in ("1", "true", "yes")
-if not _skip:
+# Skip under pytest only (CI has no Postgres); env-based skips leak into Docker via the shell.
+if "pytest" not in sys.modules:
     init_db()
 
 

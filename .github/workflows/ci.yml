@@ -14,6 +14,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -25,17 +27,43 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install dev dependencies
-        run: pip install flake8 pytest
+        run: pip install flake8 pytest pytest-cov
+
 
       - name: Lint with flake8
-        run: flake8 app.py --max-line-length=120
+        run: flake8 app.py tests --max-line-length=120
 
-      - name: Run tests
-        run: pytest tests/ -v
+      - name: Run tests  with 70% coverage gate
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=70
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  sonarcloud:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+
+      - name: SonarQube Cloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   build-and-push:
     runs-on: ubuntu-latest
-    needs: test
+    needs: [test, sonarcloud]
     permissions:
       contents: read
       packages: write

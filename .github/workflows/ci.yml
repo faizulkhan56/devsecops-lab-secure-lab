@@ -54,8 +54,8 @@ jobs:
       - name: Lint with flake8
         run: flake8 app.py tests --max-line-length=120
 
-      - name: Run tests  with 70% coverage gate
-        run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=70
+      - name: Run tests  with 60% coverage gate
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=60
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4

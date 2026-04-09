@@ -11,7 +11,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DB_HOST: postgres
+      # CI-only: pytest + service Postgres on the runner. Deploy still uses secrets.DB_HOST → remote .env.
+      DB_HOST: localhost
       DB_NAME: securecart
       DB_USER: postgres
       DB_PASSWORD: postgres

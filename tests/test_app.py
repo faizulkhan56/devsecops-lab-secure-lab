@@ -1,5 +1,14 @@
+import os
+
 import pytest
+
 from app import app
+
+_DB_E2E = os.environ.get("GITHUB_ACTIONS") == "true" or os.environ.get("RUN_DB_E2E") == "1"
+requires_db = pytest.mark.skipif(
+    not _DB_E2E,
+    reason="DB E2E: set RUN_DB_E2E=1 with local Postgres, or run in GitHub Actions",
+)
 
 
 @pytest.fixture
@@ -14,6 +23,7 @@ def test_health(client):
     assert response.status_code == 200
 
 
+@requires_db
 def test_create_user_success(client):
     response = client.post(
         "/api/users",
@@ -38,6 +48,7 @@ def test_create_user_invalid_email(client):
     assert response.status_code == 400
 
 
+@requires_db
 def test_login_fail(client):
     # invalid login should fail
     response = client.post(
@@ -49,6 +60,7 @@ def test_login_fail(client):
     )
     assert response.status_code in [400, 401]
 
-#def test_deliberate_failure():
-#    """This test will fail — demonstrating pipeline failure."""
-#    assert 1 == 2, "Deliberate failure for CI demo"
+
+# def test_deliberate_failure():
+#     """This test will fail — demonstrating pipeline failure."""
+#     assert 1 == 2, "Deliberate failure for CI demo"

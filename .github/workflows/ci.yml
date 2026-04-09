@@ -10,6 +10,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DB_HOST: postgres
+      DB_NAME: securecart
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      SECRET_KEY: ci-test-secret-not-for-production
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: securecart
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d securecart"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - name: Checkout code

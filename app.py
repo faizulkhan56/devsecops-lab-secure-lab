@@ -239,6 +239,8 @@ def login():
     except Exception as e:
         print(f"POST /api/login failed: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+
 @app.route("/boom")
 def boom():
     raise Exception("Sentry test - intentional error")

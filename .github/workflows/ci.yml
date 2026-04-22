@@ -47,10 +47,10 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install dev dependencies
-        run: pip install flake8 pytest pytest-cov
+        run: pip install "flake8>=7,<8" pytest pytest-cov
 
       - name: Lint with flake8
-        run: flake8 app.py tests --max-line-length=120
+        run: flake8 app.py tests --count --show-source --statistics
 
       - name: Run tests with 60% coverage gate
         run: pytest tests/ -v --cov=app --cov-report=xml --cov-fail-under=60

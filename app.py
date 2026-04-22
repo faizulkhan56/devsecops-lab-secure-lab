@@ -5,9 +5,22 @@ import time
 from datetime import datetime, timezone
 
 import psycopg2
+import sentry_sdk
 from flask import Flask, request, jsonify
 
+
+from sentry_sdk.integrations.flask import FlaskIntegration
+
+if os.environ.get("SENTRY_DSN"):
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,
+        release=os.environ.get("APP_VERSION"),
+    )
+
 app = Flask(__name__)
+
 
 # Secrets from environment variables
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "change-me-in-production")
@@ -226,6 +239,9 @@ def login():
     except Exception as e:
         print(f"POST /api/login failed: {e}")
         return jsonify({"error": "Internal server error"}), 500
+@app.route("/boom")
+def boom():
+    raise Exception("Sentry test - intentional error")
 
 
 # IMPORTANT:

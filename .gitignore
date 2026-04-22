@@ -3,6 +3,11 @@
 .env.*
 !.env.example
 
+# Cursor MCP (project config — local env refs; never commit)
+.cursor/mcp.json
+# Legacy root location (if present)
+.mcp.json
+
 # Python
 __pycache__/
 *.py[cod]
